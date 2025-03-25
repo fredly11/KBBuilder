@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Tracker</title>
+    <style>
+        /* Basic styles to get started */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        #sidebar {
+            width: 200px;
+            background-color: #f0f0f0;
+            padding: 10px;
+        }
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+        #view-container {
+            /* Placeholder for different views */
+        }
+        #new-category-view {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Categories</h2>
+        <ul id="category-list">
+            <!-- Categories will be dynamically added here -->
+        </ul>
+        <button id="add-category">Add New Category</button>
+    </div>
+    <div id="main-content">
+        <div id="view-container">
+            <!-- Main view -->
+            <div id="main-view">
+                <h1 id="current-category-title"></h1>
+                <div id="category-controls">
+                    <button id="switch-to-cards">Card View</button>
+                    <button id="switch-to-list">List View</button>
+                    <button id="add-item">Add New Item</button>
+                </div>
+                <div id="category-view">
+                    <!-- Card or List view will be dynamically added here -->
+                </div>
+            </div>
+            <!-- New category view -->
+            <div id="new-category-view">
+                <h2>New Category</h2>
+                <input type="text" id="category-name" placeholder="Enter category name">
+                <div id="components-list">
+                    <div class="component">
+                        <label for="item-name">Name:</label>
+                        <input type="text" id="item-name" placeholder="Item name">
+                    </div>
+                </div>
+                <button id="add-component">Add New Component</button>
+                <button id="save-category">Save Category</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
