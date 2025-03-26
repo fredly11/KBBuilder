@@ -24,8 +24,36 @@
         #view-container {
             /* Placeholder for different views */
         }
-        #new-category-view {
+        #new-category-view, #new-item-view {
             display: none;
+        }
+        #component-type-select {
+            margin-right: 10px;
+        }
+        .component, .form-component {
+            margin-bottom: 10px;
+        }
+        .component hr {
+            margin: 10px 0;
+        }
+        .component label, .form-component label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .component input[type="text"], .form-component input[type="text"], .form-component textarea {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .note {
+            font-size: 0.8em;
+            color: #666;
+        }
+        #items-list {
+            margin-top: 20px;
+        }
+        #items-list li {
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -39,34 +67,66 @@
     </div>
     <div id="main-content">
         <div id="view-container">
-            <!-- Main view -->
+            <!-- Update the main view -->
             <div id="main-view">
                 <h1 id="current-category-title"></h1>
                 <div id="category-controls">
                     <button id="switch-to-cards">Card View</button>
                     <button id="switch-to-list">List View</button>
                     <button id="add-item">Add New Item</button>
+                    <button id="delete-category">Delete Category</button>
+                    <button id="update-category">Update Category</button>
+                    <button id="delete-selected-items">Delete Selected Items</button>
+                    <button id="edit-selected-items">Edit Selected Items</button>
                 </div>
                 <div id="category-view">
-                    <!-- Card or List view will be dynamically added here -->
+                    <!-- Grid view will be dynamically added here -->
                 </div>
             </div>
             <!-- New category view -->
             <div id="new-category-view">
-                <h2>New Category</h2>
-                <input type="text" id="category-name" placeholder="Enter category name">
+                <h2 id="category-view-title">New Category</h2>
+                <label for="category-name">Category Name:</label>
+                <input type="text" id="category-name" placeholder="Enter category name" required>
                 <div id="components-list">
                     <div class="component">
-                        <label for="item-name">Name:</label>
-                        <input type="text" id="item-name" placeholder="Item name">
+                        <hr>
+                        <p>Name</p>
+                        <span class="note">(Fixed component)</span>
+                        <label for="component-label">Label:</label>
+                        <input type="text" id="component-label" placeholder="Enter label" maxlength="30" value="Name" readonly>
                     </div>
                 </div>
-                <button id="add-component">Add New Component</button>
+                <div id="add-component-controls">
+                    <select id="component-type-select">
+                        <option value="text-small">Text Box (Small)</option>
+                        <option value="text-large">Text Box (Large)</option>
+                        <option value="selection">Selection</option>
+                        <option value="checkbox">Checkbox</option>
+                        <option value="image">Image</option>
+                        <option value="list">List</option>
+                    </select>
+                    <button id="add-component">Add New Component</button>
+                </div>
                 <button id="save-category">Save Category</button>
+            </div>
+            <!-- New item view -->
+            <div id="new-item-view">
+                <h2 id="new-item-title">New Item</h2>
+                <form id="new-item-form">
+                    <div id="item-components"></div>
+                    <button type="submit">Save Item</button>
+                    <button type="button" id="cancel-new-item">Cancel</button>
+                </form>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="utils.js"></script>
+    <script type="module" src="component.js"></script>
+    <script type="module" src="categoryUtils.js"></script>
+    <script type="module" src="itemUtils.js"></script>
+    <script type="module" src="category.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>
