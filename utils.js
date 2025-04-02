@@ -1,7 +1,9 @@
+// utils.js
+
 // Function to validate the category
 export function validateCategory() {
-    const categoryName = document.getElementById('category-name').value;
-    if (!categoryName || categoryName.length < 3 || categoryName.length > 50) {
+    const categoryName = document.getElementById('category-name').value.trim();
+    if (categoryName.length < 3 || categoryName.length > 50) {
         alert('Category name must be between 3 and 50 characters.');
         return false;
     }
@@ -19,8 +21,8 @@ export function validateCategory() {
         if (type === 'Name') return; // Skip validation for the required name component
 
         const labelElement = component.querySelector('#component-label');
-        const label = labelElement ? labelElement.value : '';
-        if (!label || label.length < 3 || label.length > 30) {
+        const label = labelElement ? labelElement.value.trim() : '';
+        if (label.length < 3 || label.length > 30) {
             alert(`Component label for ${type} must be between 3 and 30 characters.`);
             isValid = false;
         }
@@ -44,32 +46,31 @@ export function validateCategory() {
 // Function to validate the new item
 export function validateItem(category, formData) {
     for (const component of category.components) {
-        if (component.type === 'Name') {
-            const nameValue = formData.get(component.label);
-            if (!nameValue || nameValue.trim() === '') {
-                alert('Name field is required.');
-                return false;
-            }
-        } else if (component.type === 'Small Text Box' || component.type === 'Large Text Box') {
-            const value = formData.get(component.label);
-            if (!value || value.trim() === '') {
-                alert(`The "${component.label}" field is required.`);
-                return false;
-            }
-        } else if (component.type === 'Selection') {
-            const value = formData.get(component.label);
-            if (!value || value === '') {
-                alert(`Please make a selection for "${component.label}".`);
-                return false;
-            }
-        } else if (component.type === 'List') {
-            const value = formData.get(component.label);
-            if (!value || value.trim() === '') {
-                alert(`The "${component.label}" field cannot be empty.`);
-                return false;
-            }
+        const value = formData.get(component.label);
+
+        switch (component.type) {
+            case 'Name':
+            case 'Small Text Box':
+            case 'Large Text Box':
+                if (!value || value.trim() === '') {
+                    alert(`The "${component.label}" field is required.`);
+                    return false;
+                }
+                break;
+            case 'Selection':
+                if (!value || value === '') {
+                    alert(`Please make a selection for "${component.label}".`);
+                    return false;
+                }
+                break;
+            case 'List':
+                if (!value || value.trim() === '') {
+                    alert(`The "${component.label}" field cannot be empty.`);
+                    return false;
+                }
+                break;
+            // Checkboxes and Images don't require validation
         }
-        // Checkboxes and Images don't require validation
     }
 
     return true;

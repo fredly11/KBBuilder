@@ -1,9 +1,9 @@
 // category.js
-import { saveCategory, updateItemsForCategory, updateCategoryList, deleteCategory, deleteSelectedItems } from './categoryUtils.js';
-import { saveNewItem, saveEditedItem, displayEditItemForm, handleNewItemSubmit} from './itemUtils.js';
-import { switchView } from './main.js';
+import { saveCategory, updateCategoryList, deleteCategory, deleteSelectedItems, truncateText } from './categoryUtils.js';
+import { saveNewItem} from './itemUtils.js';
+import { switchView, toggleItemSelection } from './main.js';
 
-let currentCategory = null;
+export let currentCategory = null;
 let selectedItems = new Set();
 let itemsBeingEdited = [];
 let currentEditIndex = 0;
@@ -41,13 +41,8 @@ export function displayCategoryFormat(category) {
         const selectCell = document.createElement('td');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                selectedItems.add(index);
-            } else {
-                selectedItems.delete(index);
-            }
-        });
+        // Updated event listener to use the imported function
+        checkbox.addEventListener('change', () => toggleItemSelection(index));
         selectCell.appendChild(checkbox);
         row.appendChild(selectCell);
 
@@ -55,32 +50,35 @@ export function displayCategoryFormat(category) {
             const cell = document.createElement('td');
             let value = item[component.label];
 
-            if (component.type === 'Small Text Box' || component.type === 'Large Text Box') {
-                if (component.type === 'Large Text Box' && value.length > 50) {
-                    value = value.slice(0, 50) + '...';
-                }
-                cell.textContent = value;
-            } else if (component.type === 'Selection') {
-                cell.textContent = value;
-            } else if (component.type === 'Checkbox') {
-                if (Array.isArray(value)) {
-                    cell.textContent = value.join(', ');
-                } else {
-                    cell.textContent = value ? 'Yes' : 'No';
-                }
-            } else if (component.type === 'Image') {
-                if (value) {
-                    const img = document.createElement('img');
-                    img.src = URL.createObjectURL(value);
-                    img.style.maxWidth = '100px';
-                    img.style.maxHeight = '50px';
-                    cell.appendChild(img);
-                } else {
-                    cell.textContent = 'No image';
-                }
-            } else if (component.type === 'List') {
-                const lines = value.split('\n');
-                cell.textContent = lines.length > 3 ? lines.slice(0, 3).join('\n') + '...' : value;
+            switch (component.type) {
+                case 'Small Text Box':
+                case 'Large Text Box':
+                    if (component.type === 'Large Text Box' && value.length > 50) {
+                        value = value.slice(0, 50) + '...';
+                    }
+                    cell.textContent = value;
+                    break;
+                case 'Selection':
+                    cell.textContent = value;
+                    break;
+                case 'Checkbox':
+                    cell.textContent = Array.isArray(value) ? value.join(', ') : (value ? 'Yes' : 'No');
+                    break;
+                case 'Image':
+                    if (value) {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(value);
+                        img.style.maxWidth = '100px';
+                        img.style.maxHeight = '50px';
+                        cell.appendChild(img);
+                    } else {
+                        cell.textContent = 'No image';
+                    }
+                    break;
+                case 'List':
+                    const lines = value.split('\n');
+                    cell.textContent = lines.length > 3 ? lines.slice(0, 3).join('\n') + '...' : value;
+                    break;
             }
 
             row.appendChild(cell);
@@ -117,6 +115,7 @@ export function updateCategory() {
     const componentsList = document.getElementById('components-list');
     componentsList.innerHTML = '';
 
+    // Add fixed 'Name' component
     const nameComponent = document.createElement('div');
     nameComponent.className = 'component';
     nameComponent.innerHTML = `
@@ -128,10 +127,11 @@ export function updateCategory() {
     `;
     componentsList.appendChild(nameComponent);
 
+    // Add other components
     currentCategory.components.forEach(component => {
         if (component.type === 'Name') return;
 
-        let newComponent = document.createElement('div');
+        const newComponent = document.createElement('div');
         newComponent.className = 'component';
         newComponent.innerHTML = `
             <hr>
@@ -140,7 +140,7 @@ export function updateCategory() {
             <input type="text" id="component-label" placeholder="Enter label" maxlength="30" value="${component.label}">
         `;
 
-        if (component.type === 'Selection' || component.type === 'Checkbox') {
+        if (['Selection', 'Checkbox'].includes(component.type)) {
             newComponent.innerHTML += `
                 <div id="${component.type.toLowerCase()}-options">
                     <!-- Options will be added here -->
@@ -159,7 +159,7 @@ export function updateCategory() {
             });
 
             const addOptionButton = newComponent.querySelector('.add-option');
-            addOptionButton.addEventListener('click', function() {
+            addOptionButton.addEventListener('click', () => {
                 const optionCount = optionsContainer.children.length + 1;
                 const newOption = document.createElement('div');
                 newOption.innerHTML = `
@@ -173,59 +173,74 @@ export function updateCategory() {
         newComponent.innerHTML += '<button class="delete-component">Delete</button>';
 
         const deleteButton = newComponent.querySelector('.delete-component');
-        deleteButton.addEventListener('click', function() {
-            componentsList.removeChild(newComponent);
-        });
+        deleteButton.addEventListener('click', () => componentsList.removeChild(newComponent));
 
         componentsList.appendChild(newComponent);
     });
 }
 
-// Function to start editing selected items
-export function startEditingSelectedItems() {
-    if (!currentCategory) {
-        alert('No category selected.');
-        return;
+// Function to create a card for an item
+function createCard(item, components) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = item.Name;
+    card.appendChild(title);
+
+    const content = document.createElement('div');
+    content.className = 'card-content';
+
+    let contentHeight = 0;
+    let showEllipsis = false;
+
+    components.forEach(component => {
+        if (component.label !== 'Name') {
+            const componentDiv = document.createElement('div');
+            componentDiv.className = 'card-component';
+            componentDiv.innerHTML = `<strong>${component.label}:</strong> ${item[component.label] || 'N/A'}`;
+            
+            // Check if adding this component would exceed the max height
+            const tempHeight = contentHeight + componentDiv.offsetHeight;
+            if (tempHeight <= 200) {
+                content.appendChild(componentDiv);
+                contentHeight = tempHeight;
+            } else {
+                // If it's a large text box, truncate it
+                if (component.type === 'Large Text Box') {
+                    const text = item[component.label] || '';
+                    const truncatedText = truncateText(text, 200 - contentHeight);
+                    componentDiv.innerHTML = `<strong>${component.label}:</strong> ${truncatedText}`;
+                    content.appendChild(componentDiv);
+                    showEllipsis = true;
+                }
+                return; // Stop adding components
+            }
+        }
+    });
+
+    if (showEllipsis) {
+        content.classList.add('show-ellipsis');
     }
 
-    if (selectedItems.size === 0) {
-        alert('No items selected for editing.');
-        return;
-    }
-
-    itemsBeingEdited = Array.from(selectedItems).sort((a, b) => a - b);
-    currentEditIndex = 0;
-
-    displayItemForEditing(currentCategory, itemsBeingEdited[currentEditIndex]);
+    card.appendChild(content);
+    return card;
 }
 
-// Function to display an item for editing
-function displayItemForEditing(category, itemIndex) {
+// Function to display items in card view
+export function displayCardView(category) {
+    const categoryView = document.getElementById('category-view');
+    categoryView.innerHTML = ''; // Clear previous content
+
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'card-container';
+
     const items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
-    const item = items[itemIndex];
+    items.forEach(item => {
+        const card = createCard(item, category.components);
+        cardContainer.appendChild(card);
+    });
 
-    displayEditItemForm(category, item, false);
-
-    const submitButton = document.querySelector('#new-item-form button[type="submit"]');
-    submitButton.textContent = 'Save Changes';
-    submitButton.removeEventListener('click', handleNewItemSubmit);
-    submitButton.addEventListener('click', () => handleEditItemSubmit(category, itemIndex));
-
-    switchView('new-item-view');
-}
-
-// Function to handle the submission of an edited item
-function handleEditItemSubmit(category, itemIndex) {
-    const form = document.getElementById('new-item-form');
-    const formData = new FormData(form);
-    saveEditedItem(category, itemIndex, formData);
-
-    currentEditIndex++;
-    if (currentEditIndex < itemsBeingEdited.length) {
-        displayItemForEditing(category, itemsBeingEdited[currentEditIndex]);
-    } else {
-        switchView('main-view');
-        itemsBeingEdited = [];
-        currentEditIndex = 0;
-    }
+    categoryView.appendChild(cardContainer);
 }

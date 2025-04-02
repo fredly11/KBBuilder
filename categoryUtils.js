@@ -1,7 +1,10 @@
 // categoryUtils.js
 
 // Function to save the category to local storage
-function saveCategory(categoryName, components) {
+export function saveCategory(categoryName, components, currentCategory) {
+    // Ensure components is an array
+    const validComponents = Array.isArray(components) ? components : [];
+
     const newCategorySchema = {
         name: categoryName,
         components: [
@@ -10,18 +13,13 @@ function saveCategory(categoryName, components) {
                 label: 'Name',
                 options: []
             },
-            ...components
+            ...validComponents
         ]
     };
 
     let categories = JSON.parse(localStorage.getItem('categories')) || [];
     if (currentCategory) {
-        categories = categories.map(category => {
-            if (category.name === currentCategory.name) {
-                return newCategorySchema;
-            }
-            return category;
-        });
+        categories = categories.map(category => category.name === currentCategory.name ? newCategorySchema : category);
     } else {
         categories.push(newCategorySchema);
     }
@@ -29,11 +27,10 @@ function saveCategory(categoryName, components) {
 
     updateItemsForCategory(newCategorySchema);
     updateCategoryList();
-    currentCategory = null;
 }
 
 // Function to update items when the category schema changes
-function updateItemsForCategory(newCategorySchema) {
+export function updateItemsForCategory(newCategorySchema) {
     const itemsKey = `${newCategorySchema.name}-items`;
     let items = JSON.parse(localStorage.getItem(itemsKey)) || [];
 
@@ -44,18 +41,26 @@ function updateItemsForCategory(newCategorySchema) {
             if (item.hasOwnProperty(component.label)) {
                 updatedItem[component.label] = item[component.label];
             } else {
-                if (component.type === 'Small Text Box' || component.type === 'Large Text Box' || component.type === 'List') {
-                    updatedItem[component.label] = '[empty]';
-                } else if (component.type === 'Selection') {
-                    updatedItem[component.label] = component.options.length > 0 ? component.options[0] : '';
-                } else if (component.type === 'Checkbox') {
-                    updatedItem[component.label] = [];
-                } else if (component.type === 'Image') {
-                    updatedItem[component.label] = null;
+                switch (component.type) {
+                    case 'Small Text Box':
+                    case 'Large Text Box':
+                    case 'List':
+                        updatedItem[component.label] = '[empty]';
+                        break;
+                    case 'Selection':
+                        updatedItem[component.label] = component.options.length > 0 ? component.options[0] : '';
+                        break;
+                    case 'Checkbox':
+                        updatedItem[component.label] = [];
+                        break;
+                    case 'Image':
+                        updatedItem[component.label] = null;
+                        break;
                 }
             }
         });
 
+        // Remove any properties from the item that are not in the new schema
         Object.keys(item).forEach(key => {
             if (!newCategorySchema.components.some(component => component.label === key)) {
                 delete updatedItem[key];
@@ -69,7 +74,7 @@ function updateItemsForCategory(newCategorySchema) {
 }
 
 // Function to update the category list in the sidebar
-function updateCategoryList() {
+export function updateCategoryList() {
     const categoryList = document.getElementById('category-list');
     categoryList.innerHTML = '';
 
@@ -82,7 +87,7 @@ function updateCategoryList() {
 }
 
 // Function to delete the current category
-function deleteCategory() {
+export function deleteCategory(currentCategory) {
     if (!currentCategory) {
         alert('No category selected to delete.');
         return;
@@ -98,16 +103,14 @@ function deleteCategory() {
 
         const categoryView = document.getElementById('category-view');
         categoryView.innerHTML = '';
-        const categoryTitle = document.getElementById('current-category-title');
-        categoryTitle.textContent = '';
+        document.getElementById('current-category-title').textContent = '';
 
         updateCategoryList();
-        currentCategory = null;
     }
 }
 
 // Function to delete selected items
-function deleteSelectedItems() {
+export function deleteSelectedItems(currentCategory, selectedItems) {
     if (!currentCategory) {
         alert('No category selected.');
         return;
@@ -125,8 +128,100 @@ function deleteSelectedItems() {
         localStorage.setItem(`${currentCategory.name}-items`, JSON.stringify(newItems));
 
         selectedItems.clear();
-        displayCategoryFormat(currentCategory);
     }
+    displayCategoryFormat(category);
 }
 
-export { saveCategory, updateItemsForCategory, updateCategoryList, deleteCategory, deleteSelectedItems };
+// Function to truncate text based on height
+export function truncateText(text, maxHeight) {
+    const div = document.createElement('div');
+    div.style.position = 'absolute';
+    div.style.left = '-1000px';
+    div.style.top = '-1000px';
+    div.style.width = '270px'; // Width of card content area
+    document.body.appendChild(div);
+
+    let truncated = text;
+    while (div.offsetHeight > maxHeight && truncated.length > 0) {
+        truncated = truncated.slice(0, -1);
+        div.textContent = truncated + '...';
+    }
+
+    document.body.removeChild(div);
+    return truncated + (truncated.length < text.length ? '...' : '');
+}
+
+export function addComponent(type) {
+    const componentsList = document.getElementById('components-list');
+    let newComponent;
+
+    switch (type) {
+        case 'text-small':
+            newComponent = createComponent('Small Text Box');
+            break;
+        case 'text-large':
+            newComponent = createComponent('Large Text Box');
+            break;
+        case 'selection':
+            newComponent = createComponent('Selection', 'selection-options');
+            addOptionListener(newComponent, 'selection-options');
+            break;
+        case 'checkbox':
+            newComponent = createComponent('Checkbox', 'checkbox-options');
+            addOptionListener(newComponent, 'checkbox-options');
+            break;
+        case 'image':
+            newComponent = createComponent('Image');
+            break;
+        case 'list':
+            newComponent = createComponent('List');
+            break;
+        default:
+            console.error('Unsupported component type:', type);
+            return;
+    }
+
+    addDeleteListener(newComponent);
+    componentsList.appendChild(newComponent);
+}
+
+// Helper function to create a basic component structure
+function createComponent(type, optionsId = null) {
+    const component = document.createElement('div');
+    component.className = 'component';
+    component.innerHTML = `
+        <hr>
+        <p>${type}</p>
+        <label for="component-label">Label:</label>
+        <input type="text" id="component-label" placeholder="Enter label" maxlength="30">
+        ${optionsId ? `<div id="${optionsId}"></div><button class="add-option">Add Option</button>` : ''}
+        <button class="delete-component">Delete</button>
+    `;
+    return component;
+}
+
+// Helper function to add option listener for selection and checkbox
+function addOptionListener(component, optionsId) {
+    const addOptionButton = component.querySelector('.add-option');
+    addOptionButton.addEventListener('click', function() {
+        const optionsContainer = component.querySelector(`#${optionsId}`);
+        const optionCount = optionsContainer.children.length + 1;
+        const newOption = document.createElement('div');
+        newOption.innerHTML = `
+            <label for="option-${optionCount}">Option ${optionCount}:</label>
+            <input type="text" id="option-${optionCount}" placeholder="Enter option" maxlength="50">
+        `;
+        optionsContainer.appendChild(newOption);
+    });
+}
+
+// Helper function to add delete listener
+function addDeleteListener(component) {
+    const deleteButton = component.querySelector('.delete-component');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', function() {
+            const componentsList = document.getElementById('components-list');
+            componentsList.removeChild(component);
+        });
+    }
+}
