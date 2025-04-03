@@ -1,9 +1,7 @@
 import { validateCategory } from './utils.js';
-import { saveCategory, updateCategoryList, deleteCategory, deleteSelectedItems, addComponent } from './categoryUtils.js';
-import { handleNewItemSubmit, displayNewItemForm} from './itemUtils.js';
-import { displayCategoryFormat, updateCategory, currentCategory, displayCardView} from './category.js';
-
-
+import { saveCategory, updateCategoryList, deleteCategory, deleteSelectedItems, addComponent, exportCategory, importCategory } from './categoryUtils.js';
+import { handleNewItemSubmit, displayNewItemForm, saveEditedItem } from './itemUtils.js';
+import { displayCategoryFormat, updateCategory, currentCategory, displayCardView } from './category.js';
 // Function to switch views
 export function switchView(viewId) {
     const views = document.querySelectorAll('#view-container > div');
@@ -16,7 +14,6 @@ export function handleCategoryClick(category) {
     switchView('main-view');
     displayCategoryFormat(category);
 }
-
 
 export let selectedItems = new Set();
 
@@ -106,67 +103,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-// Event listeners for category operations
-document.getElementById('delete-category').addEventListener('click', () => deleteCategory(currentCategory));
-document.getElementById('update-category').addEventListener('click', updateCategory);
-document.getElementById('add-item').addEventListener('click', () => {
-    if (currentCategory) {
-        displayNewItemForm(currentCategory);
-    } else {
-        alert('No category selected. Please select a category first.');
-    }
-});
-document.getElementById('new-item-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (currentCategory) {
-        // Remove all existing event listeners for submit
-        this.removeEventListener('submit', handleNewItemSubmit);
-
-        // Check if we are adding a new item or editing an existing one
-        if (this.dataset.action === 'new') {
-            handleNewItemSubmit(e, currentCategory);
-        } else if (this.dataset.action === 'edit') {
-            const itemIndex = parseInt(this.dataset.itemIndex);
-            const formData = new FormData(this);
-            saveEditedItem(currentCategory, itemIndex, formData);
-            switchView('main-view');
+    // Event listeners for category operations
+    document.getElementById('delete-category').addEventListener('click', () => deleteCategory(currentCategory));
+    document.getElementById('update-category').addEventListener('click', updateCategory);
+    document.getElementById('add-item').addEventListener('click', () => {
+        if (currentCategory) {
+            displayNewItemForm(currentCategory);
+        } else {
+            alert('No category selected. Please select a category first.');
         }
-    } else {
-        alert('No category selected.');
-    }
-});
-document.getElementById('cancel-new-item').addEventListener('click', () => switchView('main-view'));
+    });
 
-// Update delete-selected-items listener to pass selectedItems
-document.getElementById('delete-selected-items').addEventListener('click', () => {
-    if (currentCategory) {
-        deleteSelectedItems(currentCategory, selectedItems);
-    } else {
-        alert('No category selected.');
-    }
-    displayCategoryFormat(currentCategory);
-});
+    document.getElementById('new-item-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (currentCategory) {
+            // Remove all existing event listeners for submit
+            this.removeEventListener('submit', handleNewItemSubmit);
 
-// Update edit-selected-items listener to pass selectedItems
-// document.getElementById('edit-selected-items').addEventListener('click', () => {
-//     if (!currentCategory) {
-//         alert('No category selected.');
-//         return;
-//     }
-    
-//     if (selectedItems.size === 0) {
-//         alert('No items selected for editing.');
-//     } else if (selectedItems.size === 1) {
-//         // Edit the single selected item
-//         const itemIndex = Array.from(selectedItems)[0];
-//         editSingleSelectedItem(currentCategory, itemIndex);
-//     } else {
-//         // Edit multiple selected items
-//         editMultipleSelectedItems(currentCategory, selectedItems);
-//     }
-// });
+            // Check if we are adding a new item or editing an existing one
+            if (this.dataset.action === 'new') {
+                handleNewItemSubmit(e, currentCategory);
+            } else if (this.dataset.action === 'edit') {
+                const itemIndex = parseInt(this.dataset.itemIndex);
+                const formData = new FormData(this);
+                saveEditedItem(currentCategory, itemIndex, formData);
+                switchView('main-view');
+            }
+            // Clear selected items after saving or editing
+            selectedItems.clear();
+            clearCheckboxes();
+        } else {
+            alert('No category selected.');
+        }
+    });
 
+    document.getElementById('cancel-new-item').addEventListener('click', () => {
+        switchView('main-view');
+        // Clear selected items when canceling
+        selectedItems.clear();
+        clearCheckboxes();
+    });
 
+    // Update delete-selected-items listener to pass selectedItems
+    document.getElementById('delete-selected-items').addEventListener('click', () => {
+        if (currentCategory) {
+            if (selectedItems.size > 0) {
+                    deleteSelectedItems(currentCategory, selectedItems);
+                    displayCategoryFormat(currentCategory);
+                    selectedItems.clear();
+                    clearCheckboxes();
+            } else {
+                alert('No items selected for deletion.');
+            }
+        } else {
+            alert('No category selected.');
+        }
+    });
+
+    // Update edit-selected-item listener
+    document.getElementById('edit-selected-items').textContent = 'Edit Selected Item';
+    document.getElementById('edit-selected-items').addEventListener('click', () => {
+        if (!currentCategory) {
+            alert('No category selected.');
+            return;
+        }
+        
+        if (selectedItems.size === 1) {
+            const itemIndex = Array.from(selectedItems)[0];
+            const items = JSON.parse(localStorage.getItem(`${currentCategory.name}-items`)) || [];
+            const item = items[itemIndex];
+            displayNewItemForm(currentCategory, item, itemIndex);
+            selectedItems.clear();
+            clearCheckboxes();
+        } else {
+            alert('Please select exactly one item to edit.');
+        }
+    });
 
     // Event listeners for view switching
     document.getElementById('switch-to-cards').addEventListener('click', () => {
@@ -183,4 +195,39 @@ document.getElementById('delete-selected-items').addEventListener('click', () =>
             alert('No category selected. Please select a category first.');
         }
     });
+
+       // Event listener for exporting a category
+    document.getElementById('export-category').addEventListener('click', () => {
+        if (currentCategory) {
+            exportCategory(currentCategory);
+        } else {
+            alert('No category selected. Please select a category first.');
+        }
+    });
+
+    // Event listener for importing a category
+    document.getElementById('import-category').addEventListener('click', () => {
+        if (confirm('Importing a category will add it to your list. Are you sure?')) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    importCategory(file, (importedCategory) => {
+                        alert(`Category "${importedCategory.name}" has been imported successfully.`);
+                        handleCategoryClick(importedCategory);
+                    });
+                }
+            };
+            input.click();
+        }
+    });
 });
+
+function clearCheckboxes() {
+    const checkboxes = document.querySelectorAll('#category-view input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}

@@ -1,9 +1,6 @@
-// itemUtils.js
-
 import { validateItem } from './utils.js';
 import { displayCategoryFormat } from './category.js';
 import { switchView } from './main.js';
-
 
 // Function to save a new item
 export function saveNewItem(category, formData) {
@@ -31,41 +28,34 @@ export function saveNewItem(category, formData) {
 }
 
 // Function to save an edited item
-// export function saveEditedItem(category, itemIndex, formData) {
-//     const itemData = {};
-//     for (const [key, value] of formData.entries()) {
-//         if (itemData[key]) {
-//             if (!Array.isArray(itemData[key])) {
-//                 itemData[key] = [itemData[key]];
-//             }
-//             itemData[key].push(value);
-//         } else {
-//             itemData[key] = value;
-//         }
-//     }
+export function saveEditedItem(category, itemIndex, formData) {
+    const itemData = {};
+    for (const [key, value] of formData.entries()) {
+        if (itemData[key]) {
+            if (!Array.isArray(itemData[key])) {
+                itemData[key] = [itemData[key]];
+            }
+            itemData[key].push(value);
+        } else {
+            itemData[key] = value;
+        }
+    }
 
-//     if (!validateItem(category, formData)) {
-//         return;
-//     }
+    if (!validateItem(category, formData)) {
+        return;
+    }
 
-//     let items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
-//     items[itemIndex] = itemData;
-//     localStorage.setItem(`${category.name}-items`, JSON.stringify(items));
+    let items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
+    items[itemIndex] = itemData;
+    localStorage.setItem(`${category.name}-items`, JSON.stringify(items));
 
-//     displayCategoryFormat(category);
-
-//     // Clear form data after saving
-//     const form = document.getElementById('new-item-form');
-//     form.reset();
-//     // Remove any data attributes that might hold onto previous edit information
-//     form.removeAttribute('data-action');
-//     form.removeAttribute('data-itemindex');
-// }
+    displayCategoryFormat(category);
+}
 
 // Function to display the form for editing or adding an item
-export function displayEditItemForm(category, item = {}, isNew = false, itemIndex = null) {
+export function displayNewItemForm(category, item = {}, itemIndex = null) {
     const newItemTitle = document.getElementById('new-item-title');
-    newItemTitle.textContent = isNew ? `New Item for ${category.name}` : `Editing Item for ${category.name}`;
+    newItemTitle.textContent = itemIndex === null ? `New Item for ${category.name}` : `Edit Item for ${category.name}`;
 
     const itemComponents = document.getElementById('item-components');
     itemComponents.innerHTML = '';
@@ -146,14 +136,15 @@ export function displayEditItemForm(category, item = {}, isNew = false, itemInde
         itemComponents.appendChild(componentDiv);
     });
 
+
     switchView('new-item-view');
     const form = document.getElementById('new-item-form');
     const submitButton = document.querySelector('#new-item-form button[type="submit"]');
-    submitButton.textContent = isNew ? 'Save Item' : 'Save Changes';
+    submitButton.textContent = itemIndex === null ? 'Save Item' : 'Save Changes';
 
     // Set the form's action based on whether it's new or edit
-    form.dataset.action = isNew ? 'new' : 'edit';
-    if (!isNew && itemIndex !== null) {
+    form.dataset.action = itemIndex === null ? 'new' : 'edit';
+    if (itemIndex !== null) {
         form.dataset.itemIndex = itemIndex;
     }
 
@@ -161,28 +152,18 @@ export function displayEditItemForm(category, item = {}, isNew = false, itemInde
     form.removeEventListener('submit', handleNewItemSubmit);
     form.removeEventListener('submit', handleEditItemSubmit);
 
-    if (isNew) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (category) {
-                saveNewItem(category, new FormData(this));
-            } else {
-                alert('Error: No category selected.');
-            }
-        }, { once: true });
+    if (itemIndex === null) {
+        form.addEventListener('submit', handleNewItemSubmit, { once: true });
     } else {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            if (category) {
-                const formData = new FormData(this);
-                saveEditedItem(category, itemIndex, formData);
-                switchView('main-view');
-            } else {
-                alert('Error: No category selected.');
-            }
+            saveEditedItem(category, itemIndex, new FormData(this));
+            switchView('main-view');
+            // Clear selected items after saving or editing
+            selectedItems.clear();
+            clearCheckboxes();
         }, { once: true });
     }
-    
 }
 
 // Function to handle the submission of a new item
@@ -195,101 +176,5 @@ export function handleNewItemSubmit(event, category) {
         saveNewItem(category, formData);
     } else {
         alert('Error: No category selected.');
-    }
-}
-
-// Function to display the form for a new item
-export function displayNewItemForm(category) {
-    displayEditItemForm(category, {}, true);
-}
-
-
-// export function editSingleSelectedItem(category, itemIndex) {
-//     const items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
-//     const item = items[itemIndex];
-//     displayEditItemForm(category, item, false, itemIndex);
-
-//     const form = document.getElementById('new-item-form');
-//     const submitButton = document.querySelector('#new-item-form button[type="submit"]');
-//     submitButton.textContent = 'Save Changes';
-//     // Ensure we're removing any old listeners before adding new ones
-//     submitButton.removeEventListener('click', handleNewItemSubmit);
-//     submitButton.addEventListener('click', () => {
-//         const formData = new FormData(form);
-//         saveEditedItem(category, itemIndex, formData);
-//         switchView('main-view');
-//     });
-
-//     switchView('new-item-view');
-// }
-
-// Function to edit multiple selected items
-// export function editMultipleSelectedItems(category, selectedItems) {
-//     const itemsBeingEdited = Array.from(selectedItems).sort((a, b) => a - b);
-//     let currentEditIndex = 0;
-
-//     function displayCurrentItemForEditing() {
-//         const items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
-//         const itemIndex = itemsBeingEdited[currentEditIndex];
-//         const item = items[itemIndex];
-        
-//         displayEditItemForm(category, item, false, itemIndex);
-
-//         const form = document.getElementById('new-item-form');
-//         const submitButton = document.querySelector('#new-item-form button[type="submit"]');
-        
-//         submitButton.textContent = currentEditIndex < itemsBeingEdited.length - 1 ? 'Save This Item, Edit Next' : 'Save Item';
-//         // Remove any existing click event listener
-//         submitButton.removeEventListener('click', handleEditItemSubmit);
-        
-//         // Add new click event listener
-//         submitButton.addEventListener('click', () => handleEditItemSubmit(category, itemIndex, itemsBeingEdited, currentEditIndex));
-        
-//         switchView('new-item-view');
-//     }
-
-//     function handleEditItemSubmit(category, itemIndex, itemsBeingEdited, currentEditIndex) {
-//         const form = document.getElementById('new-item-form');
-//         const formData = new FormData(form);
-//         saveEditedItem(category, itemIndex, formData);
-
-//         currentEditIndex++;
-//         if (currentEditIndex < itemsBeingEdited.length) {
-//             displayCurrentItemForEditing();
-//         } else {
-//             switchView('main-view');
-//         }
-//     }
-
-//     // Start editing with the first item
-//     displayCurrentItemForEditing();
-// }
-// Function to display an item for editing
-// function displayItemForEditing(category, itemIndex, itemsBeingEdited, currentEditIndex) {
-//     const items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
-//     const item = items[itemIndex];
-
-//     displayEditItemForm(category, item, false);
-
-//     const form = document.getElementById('new-item-form');
-//     const submitButton = document.querySelector('#new-item-form button[type="submit"]');
-//     submitButton.textContent = currentEditIndex < itemsBeingEdited.length - 1 ? 'Save This Item, Edit Next' : 'Save Changes';
-//     submitButton.removeEventListener('click', handleNewItemSubmit);
-//     submitButton.addEventListener('click', () => handleEditItemSubmit(category, itemIndex, itemsBeingEdited, currentEditIndex));
-
-//     switchView('new-item-view');
-// }
-
-// Function to handle the submission of an edited item
-function handleEditItemSubmit(category, itemIndex, itemsBeingEdited, currentEditIndex) {
-    const form = document.getElementById('new-item-form');
-    const formData = new FormData(form);
-    saveEditedItem(category, itemIndex, formData);
-
-    currentEditIndex++;
-    if (currentEditIndex < itemsBeingEdited.length) {
-        displayItemForEditing(category, itemsBeingEdited[currentEditIndex], itemsBeingEdited, currentEditIndex);
-    } else {
-        switchView('main-view');
     }
 }

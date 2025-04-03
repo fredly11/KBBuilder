@@ -129,7 +129,7 @@ export function deleteSelectedItems(currentCategory, selectedItems) {
 
         selectedItems.clear();
     }
-    displayCategoryFormat(category);
+
 }
 
 // Function to truncate text based on height
@@ -224,4 +224,51 @@ function addDeleteListener(component) {
             componentsList.removeChild(component);
         });
     }
+}
+
+export function exportCategory(category) {
+    const categoryData = {
+        schema: category,
+        items: JSON.parse(localStorage.getItem(`${category.name}-items`)) || []
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(categoryData, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `${category.name}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+
+// Function to import category from JSON file
+export function importCategory(file, callback) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const categoryData = JSON.parse(event.target.result);
+            if (!categoryData.schema || !categoryData.items) {
+                throw new Error('Invalid category data format');
+            }
+
+            let categories = JSON.parse(localStorage.getItem('categories')) || [];
+            // Check if category with same name exists
+            if (categories.some(cat => cat.name === categoryData.schema.name)) {
+                alert(`A category with the name "${categoryData.schema.name}" already exists. Please rename the imported category or delete the existing one.`);
+                return;
+            }
+
+            // Add new category
+            categories.push(categoryData.schema);
+            localStorage.setItem('categories', JSON.stringify(categories));
+            localStorage.setItem(`${categoryData.schema.name}-items`, JSON.stringify(categoryData.items));
+
+            // Update the category list
+            updateCategoryList();
+            callback(categoryData.schema);
+        } catch (error) {
+            alert('Error importing category: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
 }
