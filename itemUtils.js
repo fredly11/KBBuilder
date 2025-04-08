@@ -177,4 +177,5 @@ export function handleNewItemSubmit(event, category) {
     } else {
         alert('Error: No category selected.');
     }
+    switchView('main-view');
 }

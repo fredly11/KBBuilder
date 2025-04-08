@@ -91,6 +91,96 @@ export function displayCategoryFormat(category) {
     categoryView.appendChild(table);
 }
 
+
+export function displayFilteredCategoryFormat(category, filterTerm) {
+    currentCategory = category;
+    const categoryView = document.getElementById('category-view');
+    categoryView.innerHTML = '';
+
+    const categoryTitle = document.getElementById('current-category-title');
+    categoryTitle.textContent = category.name;
+
+    const items = JSON.parse(localStorage.getItem(`${category.name}-items`)) || [];
+    // Filter items where the name starts with the filter term
+    const filteredItems = items.filter(item => 
+        item.Name && item.Name.toLowerCase().startsWith(filterTerm.toLowerCase())
+    );
+
+    // If no items match the filter, display a message
+    if (filteredItems.length === 0) {
+        categoryView.innerHTML = '<p>No items found matching the filter.</p>';
+        return;
+    }
+
+    // Create table for filtered items
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.appendChild(createHeaderCell('Select'));
+
+    category.components.forEach(component => {
+        headerRow.appendChild(createHeaderCell(component.label));
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    filteredItems.forEach((item, index) => {
+        const row = document.createElement('tr');
+
+        const selectCell = document.createElement('td');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.addEventListener('change', () => toggleItemSelection(index));
+        selectCell.appendChild(checkbox);
+        row.appendChild(selectCell);
+
+        category.components.forEach(component => {
+            const cell = document.createElement('td');
+            let value = item[component.label];
+
+            switch (component.type) {
+                case 'Small Text Box':
+                case 'Large Text Box':
+                    cell.textContent = value;
+                    break;
+                case 'Selection':
+                    cell.textContent = value;
+                    break;
+                case 'Checkbox':
+                    cell.textContent = Array.isArray(value) ? value.join(', ') : (value ? 'Yes' : 'No');
+                    break;
+                case 'Image':
+                    if (value) {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(value);
+                        img.style.maxWidth = '100px';
+                        img.style.maxHeight = '50px';
+                        cell.appendChild(img);
+                    } else {
+                        cell.textContent = 'No image';
+                    }
+                    break;
+                case 'List':
+                    const lines = value.split('\n');
+                    cell.textContent = lines.length > 3 ? lines.slice(0, 3).join('\n') + '...' : value;
+                    break;
+            }
+
+            row.appendChild(cell);
+        });
+
+        tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    categoryView.appendChild(table);
+}
 // Helper function to create table header cells
 function createHeaderCell(text) {
     const th = document.createElement('th');

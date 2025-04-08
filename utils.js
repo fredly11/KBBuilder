@@ -75,3 +75,35 @@ export function validateItem(category, formData) {
 
     return true;
 }
+
+export function initializeMobileMenu() {
+    const mobileDropdown = document.getElementById('mobile-category-dropdown');
+    const categories = JSON.parse(localStorage.getItem('categories')) || [];
+    
+    mobileDropdown.innerHTML = '<option value="">Select a Category</option>';
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.name;
+        option.textContent = category.name;
+        mobileDropdown.appendChild(option);
+    });
+}
+
+export function setupMobileMenuListeners(handleCategoryClick) {
+    const mobileDropdown = document.getElementById('mobile-category-dropdown');
+    const mobileAddCategory = document.getElementById('mobile-add-category');
+
+    mobileDropdown.addEventListener('change', (e) => {
+        if (e.target.value) {
+            const categories = JSON.parse(localStorage.getItem('categories')) || [];
+            const selectedCategory = categories.find(cat => cat.name === e.target.value);
+            if (selectedCategory) {
+                handleCategoryClick(selectedCategory);
+            }
+        }
+    });
+
+    mobileAddCategory.addEventListener('click', () => {
+        document.getElementById('add-category').click();
+    });
+}

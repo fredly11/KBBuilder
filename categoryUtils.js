@@ -76,13 +76,23 @@ export function updateItemsForCategory(newCategorySchema) {
 // Function to update the category list in the sidebar
 export function updateCategoryList() {
     const categoryList = document.getElementById('category-list');
+    const mobileDropdown = document.getElementById('mobile-category-dropdown');
+    
     categoryList.innerHTML = '';
+    mobileDropdown.innerHTML = '<option value="">Select a Category</option>';
 
     const categories = JSON.parse(localStorage.getItem('categories')) || [];
     categories.forEach(category => {
+        // Update sidebar list
         const listItem = document.createElement('li');
         listItem.textContent = category.name;
         categoryList.appendChild(listItem);
+
+        // Update mobile dropdown
+        const option = document.createElement('option');
+        option.value = category.name;
+        option.textContent = category.name;
+        mobileDropdown.appendChild(option);
     });
 }
 
@@ -132,7 +142,7 @@ export function deleteSelectedItems(currentCategory, selectedItems) {
 
 }
 
-// Function to truncate text based on height
+// Function to truncate text
 export function truncateText(text, maxHeight) {
     const div = document.createElement('div');
     div.style.position = 'absolute';
@@ -236,7 +246,7 @@ export function exportCategory(category) {
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", `${category.name}.json`);
-    document.body.appendChild(downloadAnchorNode); // required for firefox
+    document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
 }
@@ -272,3 +282,4 @@ export function importCategory(file, callback) {
     };
     reader.readAsText(file);
 }
+

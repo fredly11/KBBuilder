@@ -1,12 +1,24 @@
-import { validateCategory } from './utils.js';
+import { validateCategory, initializeMobileMenu, setupMobileMenuListeners } from './utils.js';
 import { saveCategory, updateCategoryList, deleteCategory, deleteSelectedItems, addComponent, exportCategory, importCategory } from './categoryUtils.js';
 import { handleNewItemSubmit, displayNewItemForm, saveEditedItem } from './itemUtils.js';
-import { displayCategoryFormat, updateCategory, currentCategory, displayCardView } from './category.js';
+import { displayCategoryFormat, updateCategory, currentCategory, displayCardView, displayFilteredCategoryFormat } from './category.js';
 // Function to switch views
 export function switchView(viewId) {
     const views = document.querySelectorAll('#view-container > div');
-    views.forEach(view => view.style.display = 'none');
-    document.getElementById(viewId).style.display = 'block';
+    views.forEach(view => {
+        view.style.display = 'none';
+        view.style.opacity = '0';
+    });
+
+    const targetView = document.getElementById(viewId);
+    targetView.style.display = 'block';
+    void targetView.offsetHeight;
+    targetView.classList.add('fade-in');
+    
+    setTimeout(() => {
+        targetView.classList.remove('fade-in');
+        targetView.style.opacity = '1';
+    }, 300);
 }
 
 // Function to handle category list item clicks
@@ -26,7 +38,6 @@ export function toggleItemSelection(index) {
     }
 }
 
-// Wait for the DOM to be fully loaded before attaching event listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Event listener for the "Add New Category" button
     document.getElementById('add-category').addEventListener('click', () => {
@@ -43,7 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="note">(Fixed component)</span>
         `;
         componentsList.appendChild(nameComponent);
-        currentCategory = null;
+
+        try {
+            currentCategory = null;
+            console.log('Variable is not const');
+        } catch (error) {
+            if (error instanceof TypeError && error.message.includes('Assignment to constant variable')) {
+                console.log('Variable is likely const');
+            } else {
+                console.error('Unexpected error:', error);
+            }
+        }
     });
 
     // Event listener for the "Save Category" button
@@ -129,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveEditedItem(currentCategory, itemIndex, formData);
                 switchView('main-view');
             }
-            // Clear selected items after saving or editing
             selectedItems.clear();
             clearCheckboxes();
         } else {
@@ -139,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('cancel-new-item').addEventListener('click', () => {
         switchView('main-view');
-        // Clear selected items when canceling
         selectedItems.clear();
         clearCheckboxes();
     });
@@ -223,6 +242,22 @@ document.addEventListener('DOMContentLoaded', () => {
             input.click();
         }
     });
+        // Event listener for the filter button
+        document.getElementById('filter-button').addEventListener('click', () => {
+            const filterTerm = document.getElementById('filter-input').value;
+            if (currentCategory) {
+                if (filterTerm.trim() !== '') {
+                    displayFilteredCategoryFormat(currentCategory, filterTerm);
+                } else {
+                    // If the filter term is empty, show all items
+                    displayCategoryFormat(currentCategory);
+                }
+            } else {
+                alert('No category selected. Please select a category first.');
+            }
+        });
+        initializeMobileMenu();
+        setupMobileMenuListeners(handleCategoryClick);
 });
 
 function clearCheckboxes() {

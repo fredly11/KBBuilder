@@ -10,6 +10,12 @@
     <header>
         <h1>Knowledge Base Builder</h1>
     </header>
+    <div id="mobile-category-menu">
+        <select id="mobile-category-dropdown">
+            <option value="">Select a Category</option>
+        </select>
+        <button id="mobile-add-category">Add New Category</button>
+    </div>
     <div class="container">
         <div id="sidebar">
             <h2>Categories</h2>
@@ -32,6 +38,10 @@
                         <button id="edit-selected-items">Edit Selected Item</button>
                         <button id="export-category">Export Category</button>
                         <button id="import-category">Import Category</button>
+                    </div>
+                    <div id="filter-controls">
+                        <input type="text" id="filter-input" placeholder="Filter by name...">
+                        <button id="filter-button">Filter</button>
                     </div>
                     <div id="category-view">
                         <!-- Grid view will be dynamically added here -->
