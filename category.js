@@ -2,15 +2,15 @@
 import { saveCategory, updateCategoryList, deleteCategory, deleteSelectedItems, truncateText } from './categoryUtils.js';
 import { saveNewItem} from './itemUtils.js';
 import { switchView, toggleItemSelection } from './main.js';
+import { currentCategory, setCurrentCategory, getCurrentCategory } from './state.js';
 
-export let currentCategory = null;
 let selectedItems = new Set();
 let itemsBeingEdited = [];
 let currentEditIndex = 0;
 
 // Function to display the format for the items in a category (grid view)
 export function displayCategoryFormat(category) {
-    currentCategory = category;
+    setCurrentCategory(category);
     const categoryView = document.getElementById('category-view');
     categoryView.innerHTML = '';
 

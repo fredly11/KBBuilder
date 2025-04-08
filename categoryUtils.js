@@ -2,8 +2,7 @@
 
 // Function to save the category to local storage
 export function saveCategory(categoryName, components, currentCategory) {
-    // Ensure components is an array
-    const validComponents = Array.isArray(components) ? components : [];
+    console.log('Saving category:', { categoryName, components, currentCategory });
 
     const newCategorySchema = {
         name: categoryName,
@@ -13,20 +12,37 @@ export function saveCategory(categoryName, components, currentCategory) {
                 label: 'Name',
                 options: []
             },
-            ...validComponents
+            ...components
         ]
     };
 
     let categories = JSON.parse(localStorage.getItem('categories')) || [];
-    if (currentCategory) {
-        categories = categories.map(category => category.name === currentCategory.name ? newCategorySchema : category);
-    } else {
-        categories.push(newCategorySchema);
-    }
-    localStorage.setItem('categories', JSON.stringify(categories));
+    console.log('Existing categories:', categories);
 
+    // If currentCategory is null, we're creating a new category
+    if (!currentCategory) {
+        // Check for existing category with same name
+        if (categories.some(cat => cat.name === categoryName)) {
+            alert(`A category with the name "${categoryName}" already exists.`);
+            return false;
+        }
+        
+        // Add new category
+        categories.push(newCategorySchema);
+        console.log('Added new category');
+    } else {
+        // Update existing category
+        categories = categories.map(cat => 
+            cat.name === currentCategory.name ? newCategorySchema : cat
+        );
+        console.log('Updated existing category');
+    }
+
+    console.log('Final categories:', categories);
+    localStorage.setItem('categories', JSON.stringify(categories));
     updateItemsForCategory(newCategorySchema);
     updateCategoryList();
+    return true;
 }
 
 // Function to update items when the category schema changes
